@@ -4,13 +4,12 @@ from pathlib import Path
 
 
 def detect_segments(ds, vel_thresh=0.03, window=15):
-    import torch
     import numpy as np
 
     T = len(ds)
-    velocities = torch.norm(torch.tensor([ds[i]["qdot"] for i in range(T)]), dim=1)
+    velocities = np.linalg.norm([ds[i]["qdot"] for i in range(T)], axis=1)
     is_static = velocities < vel_thresh
-    plateau = np.convolve(is_static.numpy(), np.ones(window), mode="same") == window
+    plateau = np.convolve(is_static.astype(int), np.ones(window, dtype=int), mode="same") == window
     edges = np.flatnonzero(np.diff(plateau.astype(int)) == 1) + 1
     if len(edges) == 0:
         return []
@@ -53,7 +52,7 @@ def main():
     parser.add_argument('--window', type=int, default=15, help='Window size for static detection')
     args = parser.parse_args()
 
-    from lerobot import LeRobotDataset
+    from lerobot.datasets.lerobot_dataset import LeRobotDataset
     ds = LeRobotDataset(args.dataset)
     segments = detect_segments(ds, args.vel_thresh, args.window)
     rulespecs = [summarise(ds, a, b) for a, b in segments]
