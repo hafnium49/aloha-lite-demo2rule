@@ -149,6 +149,12 @@ The updated test‑suite (`tests/test_demo2rules.py`) covers:
 * plateau detection on synthetic time‑series
 * column‑to‑joint/gripper extraction heuristics
 * template rendering of an individual rule block
+* **Edge cases from debugging**:
+  * empty or single-column matrices
+  * 1D arrays requiring reshaping to 2D
+  * mixed data types and conversion robustness
+  * very short time sequences
+  * missing or partial column matches
 
 ---
 
