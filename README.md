@@ -24,6 +24,11 @@ All other dependencies (NumPy, etc.) are pulled in transitively.
 pip install lerobot durable_rules pyarrow requests phosphobot
 ```
 
+**Dataset Compatibility**: The converter is designed to work with LeRobot v2 datasets that follow the standard format. It robustly handles various data structures including:
+- Scalar numeric columns
+- Columns containing sequences of numpy arrays (common in action/observation data)
+- Mixed data types with automatic conversion to float64
+
 ---
 
 ## CLI usage
@@ -78,15 +83,24 @@ The arms will reproduce the demo, moving through each plateaued pose and applyin
 
 2. **Filters numeric 1‑D features**, excluding housekeeping columns (`timestamp`, `frame_index`, …).
 
-3. **Groups columns by suffix** (e.g. `observation.state | motor_0`) to rebuild:
+3. **Handles complex data structures**: The converter robustly processes LeRobot v2 datasets where columns contain nested numpy arrays (common for action/observation data) by:
+   * Detecting object-dtype columns containing sequences
+   * Using `np.stack()` to convert arrays of arrays into proper 2D matrices
+   * Gracefully handling PyArrow → NumPy conversions
+   * Ensuring all data is properly shaped and typed as `float64`
+
+4. **Groups columns by suffix** (e.g. `observation.state | motor_0`) to rebuild:
 
    * joint positions for primary & secondary arms
    * end‑effector Cartesian pose (`x,y,z,rx,ry,rz`) – if present
    * gripper open/close signals
 
-4. **Detects motion plateaus** via joint‑velocity magnitude `< vel_thresh` over a sliding window.
+5. **Detects motion plateaus** via joint‑velocity magnitude `< vel_thresh` over a sliding window, with robust handling of:
+   * Empty or single-column matrices
+   * 1D data that needs reshaping to 2D
+   * Proper data type conversion for norm calculations
 
-5. **Generates a durable\_rules script** containing:
+6. **Generates a durable\_rules script** containing:
 
    ```python
    left_arm.move_j([...])
@@ -96,9 +110,31 @@ The arms will reproduce the demo, moving through each plateaued pose and applyin
    ...
    ```
 
-6. **Embeds a SHA‑256 hash and CLI parameters** in the file header for provenance.
+7. **Embeds a SHA‑256 hash and CLI parameters** in the file header for provenance.
 
 Tweak `--vel-thresh` or `--window` if your demo has very slow or very fast motions.
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**`ValueError: Unknown format code 'd' for object of type 'str'`**
+- This occurred in earlier versions when the dataset's `data_path` format string used integer format codes (`:03d`, `:06d`) but the code passed string arguments
+- Fixed by passing integer values directly to `.format()` instead of zero-padded strings
+
+**`ValueError: setting an array element with a sequence`**
+- Happens when dataset columns contain nested numpy arrays rather than scalar values
+- The converter now automatically detects and handles object-dtype columns by stacking sequences into proper 2D matrices
+
+**`AxisError: axis 1 is out of bounds for array of dimension 1`**
+- Occurs when the pose matrix is 1D instead of expected 2D shape
+- Fixed by ensuring all arrays are properly reshaped to 2D before velocity calculations
+
+**No segments detected**
+- Try adjusting `--vel-thresh` (lower for slower motions) or `--window` (smaller for shorter plateaus)
+- Check that your dataset contains meaningful joint/pose data
 
 ---
 
