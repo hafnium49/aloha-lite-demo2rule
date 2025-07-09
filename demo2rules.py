@@ -142,11 +142,24 @@ def load_pose_matrix(repo_id: str, episode_id: int):
         spec = info["features"][key]
         expanded = expand_column_names(key, spec)
         col = table[key].to_numpy()        # shape (T, len(expanded))
+        # Ensure col is 2D and numeric
+        if col.ndim == 1:
+            col = col.reshape(-1, 1)
+        col = col.astype(np.float64)
         colnames.extend(expanded)
         arrays.append(col)
 
     # Concatenate horizontally
-    pose_mat = np.hstack(arrays)           # (T, D)
+    if arrays:
+        pose_mat = np.hstack(arrays)           # (T, D)
+        # Ensure pose_mat is 2D and numeric
+        if pose_mat.ndim == 1:
+            pose_mat = pose_mat.reshape(-1, 1)
+        pose_mat = pose_mat.astype(np.float64)
+    else:
+        # No numeric features found
+        pose_mat = np.empty((len(timestamp), 0), dtype=np.float64)
+    
     return timestamp, pose_mat, colnames, info
 
 
@@ -167,10 +180,26 @@ def detect_segments_from_matrix(
 
     if len(ts) < 2:
         return []
+    
+    # Ensure mat is 2D
+    if mat.ndim == 1:
+        mat = mat.reshape(-1, 1)
+    
+    # If matrix is empty (no columns), return a single segment for the entire sequence
+    if mat.shape[1] == 0:
+        return [(0, len(ts) - 1)]
+    
     dt = float(np.median(np.diff(ts)))     # seconds
 
     # finite diff → speed per frame (L2 over dims)
-    vel = np.linalg.norm(np.diff(mat, axis=0) / dt, axis=1, ord=2)
+    diff_mat = np.diff(mat, axis=0) / dt
+    if diff_mat.ndim == 1:
+        diff_mat = diff_mat.reshape(-1, 1)
+    
+    # Ensure diff_mat is float type for norm calculation
+    diff_mat = diff_mat.astype(np.float64)
+    
+    vel = np.linalg.norm(diff_mat, axis=1, ord=2)
     vel = np.hstack([[0.0], vel])          # align shape to T
 
     half = window // 2
