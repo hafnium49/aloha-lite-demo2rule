@@ -32,7 +32,15 @@ def fetch_json(url: str):
     import requests
 
     r = requests.get(url)
-    r.raise_for_status()
+    try:
+        r.raise_for_status()
+    except requests.HTTPError as e:
+        if r.status_code == 401:
+            raise RuntimeError(
+                f"Unauthorized when fetching {url}. "
+                "Check that the dataset slug is correct or that the repo is public."
+            ) from e
+        raise
     return r.json()
 
 
