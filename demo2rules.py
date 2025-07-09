@@ -374,14 +374,14 @@ def main(argv=None):
         left_cart_block = ""
         if "left_cart" in spec:
             left_cart_block = (
-                f'        left_arm.move_cart({{{"x": {spec["left_cart"][0]}, "y": {spec["left_cart"][1]}, '
+                f'        left_arm.move_cart({{"x": {spec["left_cart"][0]}, "y": {spec["left_cart"][1]}, '
                 f'"z": {spec["left_cart"][2]}, "rx": {spec["left_cart"][3]}, "ry": {spec["left_cart"][4]}, '
                 f'"rz": {spec["left_cart"][5]}}})\n'
             )
         right_cart_block = ""
         if "right_cart" in spec and not args.single_arm:
             right_cart_block = (
-                f'        right_arm.move_cart({{{"x": {spec["right_cart"][0]}, "y": {spec["right_cart"][1]}, '
+                f'        right_arm.move_cart({{"x": {spec["right_cart"][0]}, "y": {spec["right_cart"][1]}, '
                 f'"z": {spec["right_cart"][2]}, "rx": {spec["right_cart"][3]}, "ry": {spec["right_cart"][4]}, '
                 f'"rz": {spec["right_cart"][5]}}})\n'
             )
