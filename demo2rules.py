@@ -142,10 +142,39 @@ def load_pose_matrix(repo_id: str, episode_id: int):
         spec = info["features"][key]
         expanded = expand_column_names(key, spec)
         col = table[key].to_numpy()        # shape (T, len(expanded))
+        
+        # Handle PyArrow array conversion
+        if hasattr(col, 'to_pylist'):
+            col = np.array(col.to_pylist())
+        
+        # Handle different data structures
+        if col.dtype == object:
+            # If the column contains arrays/lists, convert to 2D numeric array
+            try:
+                # Try to stack the sequences into a 2D array
+                col = np.stack(col)
+            except (ValueError, TypeError):
+                # If stacking fails, try to convert each element
+                col_list = []
+                for item in col:
+                    if hasattr(item, '__iter__') and not isinstance(item, str):
+                        col_list.append(np.array(item, dtype=np.float64))
+                    else:
+                        col_list.append(np.array([float(item)]))
+                col = np.stack(col_list)
+        
         # Ensure col is 2D and numeric
         if col.ndim == 1:
             col = col.reshape(-1, 1)
-        col = col.astype(np.float64)
+        
+        # Convert to float64, handling potential conversion issues
+        try:
+            col = col.astype(np.float64)
+        except (ValueError, TypeError):
+            # If direct conversion fails, flatten and convert
+            col = np.array([[float(x) for x in row] if hasattr(row, '__iter__') and not isinstance(row, str) 
+                           else [float(row)] for row in col])
+        
         colnames.extend(expanded)
         arrays.append(col)
 
