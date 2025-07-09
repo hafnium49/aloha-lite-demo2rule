@@ -31,7 +31,7 @@ pip install lerobot durable_rules pyarrow requests phosphobot
 ```bash
 # convert the first episode of a HF dataset into durable_rules
 python demo2rules.py \
-    --dataset Hafnium49/aloha-lite \
+    --dataset Hafnium49/aloha_lite \
     --episode 0 \
     --out rules_autogen.py \
     --left-arm so101_left \
