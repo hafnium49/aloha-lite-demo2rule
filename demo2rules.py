@@ -82,8 +82,8 @@ def load_episode_table(
     # In the LeRobot spec each Parquet file stores 1k frames by default
     episode_chunk = episode_id // 1000
     parquet_relpath = info["data_path"].format(
-        episode_chunk=str(episode_chunk).zfill(3),
-        episode_index=str(episode_id).zfill(6),
+        episode_chunk=episode_chunk,
+        episode_index=episode_id,
     )
     parquet_url = f"{base_url}/{repo_id}/resolve/main/{parquet_relpath}"
     fpath = download_parquet(parquet_url, cache_dir)
