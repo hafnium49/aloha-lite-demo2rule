@@ -1,4 +1,13 @@
-# ALOHA Lite: Demo → Rule Converter
+# ALOHA Lite: Demo → Rule Converter & Robot Control Suite
+
+A comprehensive toolkit for converting **tele‑operated LeRobot v2 recordings** into executable robot control scripts and configurations. This suite includes:
+
+1. **`demo2rules.py`** - Converts demonstrations into executable `durable_rules` scripts for SO‑101 arms
+2. **`extract_at_time.py`** - Extracts precise joint configurations at specific timestamps
+3. **Robot configuration management** - JSON-based configuration system for reproducible robot poses
+4. **Sequential execution tools** - Multi-step procedure automation with safety features
+
+The workflow mirrors the HTML Dataset Visualizer's column‑parsing logic, so any dataset you can inspect in the visualizer will also compile into rules here.HA Lite: Demo → Rule Converter
 
 `demo2rules.py` turns a **tele‑operated LeRobot v2 recording (Parquet on Hugging Face or local)** into an **executable `durable_rules` script** that drives one *or* two **SO‑101** arms through the Phosphobot SDK.
 
@@ -31,30 +40,63 @@ pip install lerobot durable_rules pyarrow requests phosphobot
 
 ---
 
-## CLI usage
+## Tools Overview
+
+### 1. demo2rules.py - Demonstration Converter
+Converts LeRobot demonstrations into executable durable_rules scripts with **CSV output support**.
+
+### 2. extract_at_time.py - Time-based Configuration Extractor
+Extracts precise joint configurations at specific timestamps from demonstrations.
+
+### 3. Robot Configuration Management
+JSON-based system for storing and managing robot configurations with phosphobot API integration.
+
+---
+
+## CLI Usage
+
+### Converting Demonstrations to Rules (with CSV output)
 
 ```bash
-# convert the first episode of a HF dataset into durable_rules
+# Generate durable_rules script (default)
 python demo2rules.py \
     --dataset Hafnium49/aloha_lite \
     --episode 0 \
     --out rules_autogen.py \
     --left-arm so101_left \
     --right-arm so101_right
+
+# Generate CSV output for analysis
+python demo2rules.py \
+    --dataset Hafnium49/aloha_lite \
+    --episode 1 \
+    --out rules_episode_1.csv \
+    --format csv \
+    --left-arm so101_left \
+    --right-arm so101_right
 ```
 
-Key flags:
+### Extracting Joint Values at Specific Times
 
-| Flag             | Default            | Meaning                                                        |
-| ---------------- | ------------------ | -------------------------------------------------------------- |
-| `--dataset`      | **required**       | `<org>/<dataset>` (HF repo‑id) *or* local path                 |
-| `--episode`      | `0`                | which episode (Parquet shard) to convert                       |
-| `--out`          | `rules_autogen.py` | output file name                                               |
-| `--left-arm`     | `so101_left`       | Phosphobot ID of the primary arm                               |
-| `--right-arm`    | `so101_right`      | secondary arm; omit or add `--single-arm` for single‑arm demos |
-| `--ruleset-name` | `so101_dual`       | durable\_rules namespace                                       |
-| `--vel-thresh`   | `0.03`             | rad s⁻¹ threshold for “static” detection                       |
-| `--window`       | `15`               | window size (# frames) for plateau detection                   |
+```bash
+# Extract joint configuration at 4.2 seconds from episode 1
+python extract_at_time.py Hafnium49/aloha_lite 1 4.2
+
+# This generates:
+# - extracted_Hafnium49_aloha_lite_ep1_t4.2s.json (detailed configuration)
+# - config_4_2s.py (executable Python configuration)
+```
+
+### Robot Configuration Management
+
+```bash
+# Execute a specific configuration from JSON file
+cd ../temp_rules
+python ../execute_rules.py robot_configurations.json dispensing_water_to_beaker
+
+# Execute sequential procedures
+python ../sequential_execute.py standoff_to_dispensing
+```
 
 ---
 
@@ -136,6 +178,21 @@ Tweak `--vel-thresh` or `--window` if your demo has very slow or very fast motio
 - Try adjusting `--vel-thresh` (lower for slower motions) or `--window` (smaller for shorter plateaus)
 - Check that your dataset contains meaningful joint/pose data
 
+**Robot execution errors**
+- `ConnectionError`: Ensure phosphobot services are running and accessible
+- `Robot collision during initialization`: Use default no-init mode or `--no-init` flag
+- `Configuration not found`: Check JSON file path and configuration name spelling
+
+**Time extraction issues**
+- `Timestamp out of range`: Check dataset duration and use valid timestamps
+- `No data at timestamp`: Dataset may have gaps; try nearby timestamps
+- `Environment not found`: Ensure conda environment `aloha_lite` is activated
+
+**CSV output problems**
+- Empty CSV files: Check that dataset contains valid plateau segments
+- Missing columns: Ensure dataset has expected arm/joint structure
+- Format detection: Use explicit `--format csv` flag for CSV output
+
 ---
 
 ## Running the unit tests
@@ -160,8 +217,114 @@ The updated test‑suite (`tests/test_demo2rules.py`) covers:
 
 ### Road‑map
 
+**Recently Completed ✅**
+* ✅ CSV output format for analysis and integration
+* ✅ Time-based configuration extraction at specific timestamps  
+* ✅ JSON-based robot configuration management system
+* ✅ Sequential execution with predefined procedures
+* ✅ Safety improvements with default no-initialization mode
+* ✅ Precise joint value extraction from demonstrations
+
+**Future Enhancements**
 * automatic merging of very short segments
 * inverse‑kinematic fallback when only Cartesian data are available
 * richer safety guards (force thresholds, timeout aborts) in generated rules
+* real-time demonstration recording and immediate execution
+* advanced trajectory interpolation between extracted poses
 
 Contributions are welcome—please open an issue or PR.
+
+---
+
+### Command-line Flags Reference
+
+#### demo2rules.py Flags
+
+| Flag             | Default            | Meaning                                                        |
+| ---------------- | ------------------ | -------------------------------------------------------------- |
+| `--dataset`      | **required**       | `<org>/<dataset>` (HF repo‑id) *or* local path                 |
+| `--episode`      | `0`                | which episode (Parquet shard) to convert                       |
+| `--out`          | `rules_autogen.py` | output file name                                               |
+| `--format`       | `python`           | output format: `python` (durable_rules) or `csv` (analysis)    |
+| `--left-arm`     | `so101_left`       | Phosphobot ID of the primary arm                               |
+| `--right-arm`    | `so101_right`      | secondary arm; omit or add `--single-arm` for single‑arm demos |
+| `--ruleset-name` | `so101_dual`       | durable\_rules namespace                                       |
+| `--vel-thresh`   | `0.03`             | rad s⁻¹ threshold for "static" detection                       |
+| `--window`       | `15`               | window size (# frames) for plateau detection                   |
+
+#### extract_at_time.py Arguments
+
+| Argument    | Required | Meaning                                     |
+| ----------- | -------- | ------------------------------------------- |
+| `dataset`   | Yes      | Dataset name (e.g., `Hafnium49/aloha_lite`) |
+| `episode`   | Yes      | Episode number (0-based)                   |
+| `timestamp` | Yes      | Time in seconds (e.g., `4.2`)              |
+
+---
+
+## Robot Configuration System
+
+### Configuration JSON Structure
+
+Robot configurations are stored in JSON format with the following structure:
+
+```json
+{
+  "configurations": {
+    "configuration_name": {
+      "name": "configuration_name",
+      "description": "Description of the robot pose",
+      "source": {
+        "dataset": "Hafnium49/aloha_lite",
+        "episode": 1,
+        "timestamp": 4.2,
+        "extraction_method": "time_based"
+      },
+      "configuration": {
+        "left_arm": {
+          "joints": {
+            "j1": 0.227, "j2": 0.746, "j3": 1.054,
+            "j4": -1.670, "j5": -1.729, "j6": -0.006
+          }
+        },
+        "right_arm": {
+          "joints": {
+            "j1": 0.219, "j2": 0.198, "j3": 0.910,
+            "j4": -1.410, "j5": -2.065, "j6": 0.488
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Execution Tools
+
+#### execute_rules.py
+Execute individual configurations with safety features:
+```bash
+# Execute specific configuration (safe - no initialization)
+python execute_rules.py robot_configurations.json dispensing_water_to_beaker
+
+# Execute with robot initialization (use with caution)
+python execute_rules.py robot_configurations.json dispensing_water_to_beaker --init
+```
+
+#### sequential_execute.py
+Execute predefined sequences of robot movements:
+```bash
+# Execute predefined sequences
+python sequential_execute.py standoff_to_dispensing
+python sequential_execute.py full_lab_procedure
+
+# List available sequences
+python sequential_execute.py --list
+```
+
+### Safety Features
+
+- **Default no-initialization**: Prevents dangerous collision during startup
+- **Configuration validation**: Ensures all required joint values are present
+- **Error handling**: Graceful failure with informative error messages
+- **Sequential timing**: Controlled delays between movements in procedures
