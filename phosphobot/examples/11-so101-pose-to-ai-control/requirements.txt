@@ -1,4 +1,0 @@
-# Requirements for SO-101 Pose to AI Control Script
-httpx>=0.24.0
-argparse
-asyncio

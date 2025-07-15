@@ -1,2 +1,0 @@
-fastapi uvicorn[standard] httpx boto3 python-multipart prometheus-client
-colour-checker-detection

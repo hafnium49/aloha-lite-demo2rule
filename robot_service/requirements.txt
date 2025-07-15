@@ -1,6 +1,0 @@
-fastapi==0.110.* 
-uvicorn[standard]==0.29.* 
-pydantic==2.* 
-httpx==0.27.* 
-pyzmq==26.*            # ZMQ subscribe (Phosphobot state bus)
-prometheus-client==0.20.*

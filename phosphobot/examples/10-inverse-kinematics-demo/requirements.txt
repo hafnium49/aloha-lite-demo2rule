@@ -1,9 +1,0 @@
-# Core dependencies for SO-101 control
-httpx>=0.24.0           # HTTP client for API communication
-numpy>=1.20.0           # Numerical computations
-
-# Workspace validation and visualization
-matplotlib>=3.6.0       # 3D workspace visualization
-
-# Optional: Enhanced visualization
-# plotly>=5.0.0         # Interactive 3D plots (uncomment if desired)
